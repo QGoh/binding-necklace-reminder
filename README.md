@@ -1,2 +1,3 @@
-# Example
-An example greeter plugin
+Draws a simple overlay to remind you when your binding necklace charges are below a configured threshold.
+
+![Overlay](binding.JPG "Overlay")

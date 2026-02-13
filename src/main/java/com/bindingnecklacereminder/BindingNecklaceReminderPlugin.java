@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.ItemContainer;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.gameval.InventoryID;
@@ -18,6 +19,7 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.util.Text;
 
 @Slf4j
 @PluginDescriptor(
@@ -75,17 +77,7 @@ public class BindingNecklaceReminderPlugin extends Plugin
 			return;
 		}
 
-		final ItemContainer equipment = client.getItemContainer(InventoryID.WORN);
-		final ItemContainer inventory = client.getItemContainer(InventoryID.INV);
-		if ((equipment != null && equipment.contains(ItemID.MAGIC_EMERALD_NECKLACE)) ||
-			(inventory != null && inventory.contains(ItemID.MAGIC_EMERALD_NECKLACE)))
-		{
-			checkCharge();
-		}
-		else
-		{
-			overlayManager.remove(overlay);
-		}
+		checkCharge();
 	}
 
 	@Subscribe
@@ -93,9 +85,24 @@ public class BindingNecklaceReminderPlugin extends Plugin
 	{
 		if (event.getVarpId() == VarPlayerID.NECKLACE_OF_BINDING)
 		{
-			configManager.setRSProfileConfiguration(BindingNecklaceReminderConfig.GROUP, "bindingNecklace", event.getValue());
+			setCharge(event.getValue());
 			checkCharge();
 		}
+	}
+
+	@Subscribe
+	private void onChatMessage(ChatMessage event)
+	{
+		String message = Text.removeTags(event.getMessage());
+		if (message.contains("Your Binding necklace has disintegrated."))
+		{
+			setCharge(16);
+		}
+	}
+
+	private void setCharge(int value)
+	{
+		configManager.setRSProfileConfiguration(BindingNecklaceReminderConfig.GROUP, "bindingNecklace", value);
 	}
 
 	public int getCharge()
@@ -106,11 +113,21 @@ public class BindingNecklaceReminderPlugin extends Plugin
 
 	private void checkCharge()
 	{
-		int charge = getCharge();
-
-		if (charge <= config.chargeThreshold())
+		final ItemContainer equipment = client.getItemContainer(InventoryID.WORN);
+		final ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+		if ((equipment != null && equipment.contains(ItemID.MAGIC_EMERALD_NECKLACE)) ||
+			(inventory != null && inventory.contains(ItemID.MAGIC_EMERALD_NECKLACE)))
 		{
-			overlayManager.add(overlay);
+			int charge = getCharge();
+
+			if (charge <= config.chargeThreshold())
+			{
+				overlayManager.add(overlay);
+			}
+			else
+			{
+				overlayManager.remove(overlay);
+			}
 		}
 		else
 		{
